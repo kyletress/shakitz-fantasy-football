@@ -1,6 +1,3 @@
-// Place all the styles related to the user controller here.
-// They will automatically be included in application.css.
-// You can use Sass (SCSS) here: http://sass-lang.com/
 #fixture-header {
   margin-bottom:1.5em;
 }
@@ -20,11 +17,21 @@
 
 .player-name{
   font-size:110%;
-  
 }
 
 .first-select{
   background:#daf6b5;
+}
+
+.perfect-team__star {
+  display: none;
+  width: 12px;
+  height: 12px;
+  margin-right: 2px;
+}
+
+.perfect-team .perfect-team__star{
+  display: inline-block;
 }
 
 .second-select{
@@ -42,11 +49,12 @@
 }
 
 .team-name{
-  margin-left:1.5em;
+  margin: 0;
+  word-break: break-word;
 }
+
 .team-points{
-  margin-left:3em;
-  margin-bottom:2em;
+  margin-left:36px;
 }
 
 .week-points-label{
@@ -79,16 +87,76 @@
   margin-top:1em;
 }
 
-#left-Box{
-  float:left;
-  width:45%;
+#left-Box,
+#right-Box{
   margin-bottom:3em;
 }
 
-#right-Box{
-  float:right;
-  width:45%;
-  margin-bottom:3em;
+/** Point Info **/
+.sh-point-container-td {
+  display: none;
+}
+.sh-point-container {
+    display: table-cell;
+    font-size: 13px;
+}
+
+.sh-point-flex-container {
+  display: -webkit-flex;
+  display:-ms-flexbox;
+  display: flex;
+  max-width: 100%;
+  flex-wrap: wrap;
+  
+  clear: both;
+}
+
+.sh-point-row-container {
+  width: 50%;
+}
+
+.sh-point-row-icon {
+  float: left;
+  padding-right: 5px;
+}
+#sh-point-info-box {
+  padding-top: 5px;
+}
+
+#sh-point-info-box div {
+  padding-bottom: 3px;
+}
+
+.sh-point-col-score {
+  float: left;
+  margin-bottom: 1em;
+  max-width: 50%;
+}
+
+.sh-point-col-transfer {
+  text-align: right;
+}
+
+.sh-point-col-transfer img {
+  height: 20px;
+  cursor: pointer;
+}
+
+.sh-point-row {
+  font-size: 1.5rem;
+  text-transform: capitalize;
+  padding-left: 0.6rem;
+  padding-bottom: 0.5rem;
+}
+
+.sh-point-row-container:nth-child(4n), .sh-point-row-container:nth-child(4n-1) {
+  background-color: #eee;
+}
+
+.standings-table.table {
+  a {
+    text-transform: capitalize;
+  }
 }
 
 #stat-detail table{
@@ -97,7 +165,6 @@
   border: 1px solid black;
   overflow:hidden;
   border-radius: 5px;    
-  border-radius: 5px; 
 }
 
 #stat-detail td{
@@ -111,4 +178,55 @@
 
 .point-stats{
   cursor:default; 
+  text-align: right;
+}
+
+.icon-credit {
+  text-align: center;
+  font-size: 10px;
+}
+
+.user-header-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.user-header-info {
+  display: flex;
+  align-items: center;
+}
+
+.week-toggle-container {
+  display: flex;
+  flex-direction: row;
+}
+
+@media (max-width: 768px) {
+  #rosters {
+    display: flex;
+    width: calc(100vw - 30px);
+    justify-content: space-around;
+  }
+
+  #left-Box,
+  #right-Box {
+    margin-bottom:3em;
+    padding: 0;
+    width: auto;
+  }
+
+  .player-name {
+    font-size: 14px;
+  }
+
+  .player-info {
+    font-size: 11px;
+  }
+}
+@media (max-width: 540px) {
+  .week-toggle-container {
+    flex-direction: column;
+    align-items: center;
+  }
 }

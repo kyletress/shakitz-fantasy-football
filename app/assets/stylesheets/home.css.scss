@@ -1,0 +1,17 @@
+.week-toggle-fixtures {
+  justify-content: center;
+}
+
+@media (max-width: 1200px) {
+  .container {
+    width: 95% !important;
+  }
+}
+
+@media (max-width: 768px ) {
+  .container {
+    .jumbotron {
+      padding: 30px;
+    }
+  }
+}

@@ -9,7 +9,8 @@
 	var players = <%= raw @nfl_players %>;
 	var stats = <%= raw @stats %>;
 	var userName = "<%= @user.name %>";
-	var isLoggedIn = "<%= session[:user_id] %>" || false;
+	var isLoggedInString = "<%= session[:user_id] %>" || "";
+	var isLoggedIn = isLoggedInString.length > 0;
 	<% Rails.logger.info "Found @nfl_players" %>
 	<% if session[:user_id] == @user.id %>
 		<% Rails.logger.info "User_id #{@user.id} is same as session id #{session[:user_id]}" %>
@@ -23,14 +24,14 @@
 <div class="container">
 	<div class="row clearfix">
 		<div class="col-md-12 column">
-			<div class="row">
-				<div class="col-xs-1 column">
+			<div class="row user-header-container">
+				<div class="user-header-info">
 				<% if session[:user_id] == @user.id %>
 					<%= image_tag("edit.png", {:class => "edit_button", :alt => "Edit"}) %>
 				<% end %>
 				</div>
-					<h1 class="team-name"> <%= @user.name %> - <%= @user.team_name %> </h1>
-			</div>
+        <h1 class="team-name"> <%= @user.name %> - <%= @user.team_name %> </h1>
+      </div>
 			</div>
 			<h2 class="team-points"> <%= @user.points %> Points</h2>
 		</div>
@@ -55,17 +56,19 @@
 	</div>
 	<% end %>
 	<div class="row clearfix">
-		<div class="col-md-12 column">
-			<div class="col-md-1 column">
-				<span id="prevWeekBtn" title="View previous week" class="glyphicon glyphicon-arrow-left arrow"></span>
-			</div>
-			<div class="col-md-3 column fixture-label">
-				<h3 id="week_label" title="Week " align="center">Week <%= @user.team_for_game_week(@game_week).game_week.number %></h3>
-			</div>
-			<% Rails.logger.info "Successfully rendered game week number" %>
-			<div class="col-md-1">
-				<span id="nextWeekBtn" title="View next week" class="glyphicon glyphicon-arrow-right arrow"></span>
-			</div>
+		<div class="col-md-12 column week-toggle-container">
+      <div class="week-toggle">
+        <div class="arrow-container">
+          <span id="prevWeekBtn" title="View previous week" class="glyphicon glyphicon-arrow-left arrow"></span>
+        </div>
+        <div class="fixture-label">
+          <h3 id="week_label" title="Week " align="center">Week <%= @user.team_for_game_week(@game_week).game_week.number %></h3>
+        </div>
+        <% Rails.logger.info "Successfully rendered game week number" %>
+        <div class="arrow-container">
+          <span id="nextWeekBtn" title="View next week" class="glyphicon glyphicon-arrow-right arrow"></span>
+        </div>
+      </div>
 			<div>
 				<span class="week-points-label"><%= @user.team_for_game_week(@game_week).points %> Points</span>
 			</div>
@@ -74,62 +77,60 @@
 	</div>
 	<% player_type_order = ["QB", "RB", "WR", "TE", "K", "D"] %>
 	<div id="rosters">
-		<div id="left-Box">
+		<div id="left-Box" class="col-xs-6">
 			<h4>Active Roster</h3>
 			<table id="activeTable" class="table table-condensed active-roster">
 				<tr>
 					<th>Player</th>
-					<th>Points</th>
+					<th style="text-align:right;">Points</th>
 				</tr>
 				<% @user.team_for_game_week(@game_week).match_players_playing.sort_by{ |player| player_type_order.find_index(player.nfl_player.nfl_player_type.position_type)}.each do |match_player| %>
-				<tr id="<%= match_player.id %>Row">
-					<td id="<%= match_player.id %>">
-						<span class="player-name"><%= match_player.nfl_player.name %></span><br />
+				<% perfect_team = @user.team_for_game_week(@game_week).perfect_team_match_players() %>
+				<tr id="<%= match_player.id %>Row" class="player-tr <%= "perfect-team" if perfect_team.include?(match_player) %>">
+					<td id="<%= match_player.id %>" class="player-td-info">
+            <svg class="perfect-team__star" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 49.655 49.654"><path d="M24.827 0C11.138 0 0 11.137 0 24.826c0 13.688 11.137 24.828 24.826 24.828 13.688 0 24.827-11.14 24.827-24.828C49.653 11.137 38.516 0 24.827 0zm13.716 23.011l-7.188 5.201 2.769 8.46a1.34 1.34 0 0 1-2.054 1.504l-7.244-5.24-7.243 5.24a1.338 1.338 0 0 1-2.054-1.504l2.769-8.46-7.187-5.2v-.001a1.336 1.336 0 0 1 .784-2.42h8.897l2.755-8.421a1.339 1.339 0 0 1 2.56 0l2.754 8.421h8.896a1.337 1.337 0 0 1 .786 2.42z" fill="#933EC5"/></svg>
+            <span class="player-name"><%= match_player.nfl_player.name %></span><br />
 						<span class="player-info">
 							<span class="player-pos"><%= match_player.nfl_player.nfl_player_type.position_type %></span> - 
 							<%= match_player.nfl_player.nfl_team.name %>
 						</span>
 					</td>
-					<td><span id="<%= match_player.nfl_player.id %>_points" class="point-stats"><%= match_player.points %></span></td>
+					<td><p id="<%= match_player.nfl_player.id %>_points" class="point-stats"><%= match_player.points %></p></td>
 				</tr>
+				<tr id="<%= match_player.nfl_player.id %>RowDetail"></tr>
 				<script>
-					$("#<%=match_player.nfl_player.id%>_points").hover(function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').stop(true,true).fadeIn(); 
-					},function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').stop(true,true).fadeOut();
-					}).mousemove(function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').css({top:(ev.clientY-790), left: -75});
+					$($("#<%=match_player.id%>Row").find('.point-stats')[0]).click(function(evt){
+						$('#<%= match_player.nfl_player_id %>_stat_table').slideToggle();
 					});
 				</script>
 				<% end %>
 			</table>
 			<% Rails.logger.info "Succesfully rendered active-roster players" %>
 		</div>
-		<div id="right-Box">
+		<div id="right-Box" class="col-xs-6">
 			<h4>Bench</h3>
 			<table id="benchedTable" class="table table-condensed benched">
 				<tr>
 					<th>Player</th>
-					<th>Points</th>
+					<th style="text-align:right;">Points</th>
 				</tr>
 				<% @user.team_for_game_week(@game_week).match_players_benched.sort_by{ |player| player_type_order.find_index(player.nfl_player.nfl_player_type.position_type)}.each do |match_player| %>
-				<tr id="<%= match_player.id %>Row">
-					<td id="<%= match_player.id %>">
-						<span class="player-name"><%= match_player.nfl_player.name %></span><br />
+				<% perfect_team = @user.team_for_game_week(@game_week).perfect_team_match_players() %>
+				<tr id="<%= match_player.id %>Row" class="player-tr <%= "perfect-team" if perfect_team.include?(match_player) %>">
+					<td id="<%= match_player.id %>" class="player-td-info">
+            <svg class="perfect-team__star" xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 49.655 49.654"><path d="M24.827 0C11.138 0 0 11.137 0 24.826c0 13.688 11.137 24.828 24.826 24.828 13.688 0 24.827-11.14 24.827-24.828C49.653 11.137 38.516 0 24.827 0zm13.716 23.011l-7.188 5.201 2.769 8.46a1.34 1.34 0 0 1-2.054 1.504l-7.244-5.24-7.243 5.24a1.338 1.338 0 0 1-2.054-1.504l2.769-8.46-7.187-5.2v-.001a1.336 1.336 0 0 1 .784-2.42h8.897l2.755-8.421a1.339 1.339 0 0 1 2.56 0l2.754 8.421h8.896a1.337 1.337 0 0 1 .786 2.42z" fill="#933EC5"/></svg>
+            <span class="player-name"><%= match_player.nfl_player.name %></span><br />
 						<span class="player-info">
 							<span class="player-pos"><%= match_player.nfl_player.nfl_player_type.position_type %></span> - 
 							<%= match_player.nfl_player.nfl_team.name %>
 						</span>
 					</td>
-					<td><span id="<%= match_player.nfl_player.id %>_points" class="point-stats"><%= match_player.points %></span></td>
+					<td><p id="<%= match_player.nfl_player.id %>_points" class="point-stats"><%= match_player.points %></p></td>
 				</tr>
+				<tr id="<%= match_player.nfl_player.id %>RowDetail"></tr>
 				<script>
-					$("#<%=match_player.nfl_player.id%>_points").hover(function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').stop(true,true).fadeIn(); 
-					},function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').stop(true,true).fadeOut();
-					}).mousemove(function(ev){
-					    $('#<%=match_player.nfl_player.id%>_stat_table').css({top:(ev.clientY-790), left: 550});
+					$($("#<%=match_player.id%>Row").find('.point-stats')[0]).click(function(evt){
+						$('#<%= match_player.nfl_player.id %>_stat_table').slideToggle();
 					});
 				</script>
 				<% end %>
@@ -139,8 +140,6 @@
 			<button id="swapButton" class="btn btn-primary btn-lg swap-player-btn">Save changes</button>
 			<% end %>
 		</div>
-	</div>
-	<div id="stat-detail">
 	</div>
 	<div class="row clearfix">
 		<div class="col-md-12 column">			
@@ -223,4 +222,8 @@
 		</div>
 	</div>
 </div>
+<div class="icon-credit"> 
+	<div>Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> 
+		from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+ </div>
 <%= javascript_include_tag "team_show" %>

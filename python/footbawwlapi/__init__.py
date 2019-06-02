@@ -6,10 +6,13 @@ from footbawwlapi.game import Game
 def create_all_players(host, port, year, kind, game_weeks):
   games = []
   for week in game_weeks:
-    for game in nflgame.games(year, week = week, kind = kind):
+    print "Finding games for: (year = '{}', week = '{}', kind = '{}')".format(year, week, kind)
+    found_games = nflgame.games(year, week = week, kind = kind)
+    print "Found {} games".format(str(len(games)))
+    for game in found_games:
       games.append(Game(game, week))
 
-  if not games:
+  if not len(games) > 0:
     raise RuntimeError("Couldn't find any {}-games in {}, did you get the year right?".format(kind, year))
 
   offensive_players = {}

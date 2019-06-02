@@ -1,3 +1,5 @@
+require 'best_team'
+
 # -*- encoding : utf-8 -*-
 class GameWeekTeam < ActiveRecord::Base
   def self.find_unique_with(user_id, game_week)
@@ -5,11 +7,8 @@ class GameWeekTeam < ActiveRecord::Base
 
     # There should only we one of these
     no_of_gwt_objs = gwt_obj_list.size
-    if no_of_gwt_objs == 0
-      fail ActiveRecord::RecordNotFound, no_record_found_message(user_id, game_week)
-    elsif no_of_gwt_objs > 1
-      fail IllegalStateError, multiple_records_found_message(no_of_gwt_objs, user_id, game_week)
-    end
+    raise ActiveRecord::RecordNotFound, no_record_found_message(user_id, game_week) if no_of_gwt_objs.zero?
+    raise IllegalStateError, multiple_records_found_message(no_of_gwt_objs, user_id, game_week) if no_of_gwt_objs > 1
 
     # Return what must be the only element
     gwt_obj_list.first
@@ -55,11 +54,21 @@ class GameWeekTeam < ActiveRecord::Base
     gwt_players.map(&:match_player)
   end
 
+  def perfect_team_match_players
+    return [] if points + bench_points <= 0
+    players = match_players.map do |mp|
+      [mp.nfl_player, mp.points]
+    end
+    BestTeam.find_ten_best_players(players).map do |nfl_player, _points|
+      nfl_player.player_for_game_week(game_week.number)
+    end
+  end
+
   def fixture
     # "Or" is not implemented yet :/
     fixtures = Fixture.where("home_team_id = #{id} or away_team_id = #{id}")
     return nil if fixtures.empty?
-    fail IllegalStateException if fixtures.size > 1
+    raise IllegalStateException if fixtures.size > 1
     fixtures[0]
   end
 
@@ -73,7 +82,7 @@ class GameWeekTeam < ActiveRecord::Base
     return :won if fixture.won_by?(self)
     return :drawn if fixture.drawn?
     return :lost if fixture.lost_by?(self)
-    fail IllegalStateException, "fixture wasn't won, drawn or lost by this team!"
+    raise IllegalStateException, "fixture wasn't won, drawn or lost by this team!"
   end
 
   def points
@@ -85,6 +94,12 @@ class GameWeekTeam < ActiveRecord::Base
 
   def bench_points
     match_players_benched.reduce(0) do |sum, player|
+      sum + player.points
+    end
+  end
+
+  def perfect_team_points
+    perfect_team_match_players.reduce(0) do |sum, player|
       sum + player.points
     end
   end

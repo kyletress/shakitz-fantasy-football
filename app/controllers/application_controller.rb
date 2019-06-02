@@ -1,7 +1,10 @@
 # -*- encoding : utf-8 -*-
 require 'illegal_state_error'
 require 'active_record/validations'
+
 class ApplicationController < ActionController::Base
+  NotAuthorised = Class.new(StandardError)
+
   # Prevent CSRF attacks by raising an exception.
   # For APIs, you may want to use :null_session instead.
   # protect_from_forgery with: :exception
@@ -19,7 +22,8 @@ class ApplicationController < ActionController::Base
   end
 
   def timestamp_of_last_comment
-    if session[:user_id]
+    # Only get the last comment time if there are any and the user is logged in
+    if session[:user_id] && Comment.exists?
       time = Comment.find(Comment.order(timestamp: :desc).limit(1)).timestamp.in_time_zone.to_i
       @last_comment = time * 1000
     else
@@ -30,12 +34,12 @@ class ApplicationController < ActionController::Base
   def validate_all_parameters(expected_params, params)
     expected_params.each do |parameter|
       next if params.key?(parameter)
-      fail ArgumentError, "Expecting '#{parameter}' in params, but could not find it"
+      raise ArgumentError, "Expecting '#{parameter}' in params, but could not find it"
     end
   end
 
   def validate_user_session(user_id)
-    fail ArgumentError, 'User is not authorised to perform this action' if session[:user_id] != user_id
+    raise ArgumentError, 'User is not authorised to perform this action' if session[:user_id] != user_id
   end
 
   def validate_at_least_number_of_parameters(expected_params, params, minimum_expected)
@@ -47,18 +51,23 @@ class ApplicationController < ActionController::Base
 
     return unless parameters_found.size < minimum_expected
     parameters_found_string = parameters_found.join(', ')
-    fail ArgumentError, "Expected at least #{minimum_expected} but found #{parameters_found_string}"
+    raise ArgumentError, "Expected at least #{minimum_expected} but found #{parameters_found_string}"
   end
 
   def return_nfl_player_and_team_data
-    players = NflPlayer.includes(:nfl_team)
-    tmp = {}
-    players.each do |player|
-      player_tmp = { player: player }
-      name_tmp = { team: player.nfl_team.name }
-      tmp[player.id] = player_tmp.merge!(name_tmp)
+    gameweek = WithGameWeek.current_game_week
+    key = 'nfl_player_and_team_data_for_gw_' + gameweek.to_s
+    expiry = cache_expiry
+    Rails.cache.fetch(key, expires_in: expiry) do
+      players = NflPlayer.includes(:nfl_team)
+      tmp = {}
+      players.each do |player|
+        player_tmp = { player: player }
+        name_tmp = { team: player.nfl_team.name }
+        tmp[player.id] = player_tmp.merge!(name_tmp)
+      end
+      tmp.to_json
     end
-    tmp.to_json
   end
 
   def ok_response
@@ -81,6 +90,16 @@ class ApplicationController < ActionController::Base
     render file: "#{Rails.root}/public/500.html", layout: false, status: :exception
   end
 
+  # Cache generation methods
+  def cache_expiry
+    time = Time.zone.now
+    if (time.friday? || time.tuesday?) && time.hour > 0o0 || time.sunday? && time.hour > 17
+      15.minutes
+    else
+      1.day
+    end
+  end
+
   # Stuff that's going to return a 422
   rescue_from ArgumentError do |error|
     trace_error(error)
@@ -90,6 +109,11 @@ class ApplicationController < ActionController::Base
   rescue_from ActiveRecord::RecordInvalid do |error|
     trace_error(error)
     render_unprocessable_entity
+  end
+
+  rescue_from ApplicationController::NotAuthorised do |error|
+    trace_error(error)
+    render status: :unprocessable_entity, json: { response: 'Unauthorized' }
   end
 
   # Stuff that's going to return a 500
